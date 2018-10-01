@@ -1,0 +1,10 @@
+venv/
+.idea/
+config.cfg
+crowbar-auth.log
+test.db
+static/
+templates
+/__pycache__/
+*.pyc
+*~
