@@ -1,5 +1,5 @@
 import flask
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 import flask_saml
@@ -62,8 +62,7 @@ def login_required(f):
 
 @app.route('/')
 def index():
-    # TODO set hostname inside config
-    resp = flask.make_response(flask.redirect("http://localhost:4200"))
+    resp = flask.make_response(flask.redirect(app.config['CROWBAR_WEB_IP']))
 
     # Set cookies with encrypted data and time limit of 30 minutes
     resp.set_cookie(app.config['COOKIE_USER'], fernet.encrypt(json.dumps(flask.session['user']).encode('utf-8')), max_age=60 * 30)
@@ -79,7 +78,7 @@ def get_all_machines():
     vm_schema = VirtualMachineSchema(many=True)
     result = vm_schema.dump(all_machines)
     response = flask.jsonify(result.data)
-    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Origin', app.config['CROWBAR_WEB_IP'])
     response.headers.add('Access-Control-Allow-Methods', 'GET')
     return response
 
@@ -88,16 +87,11 @@ def get_all_machines():
 # @login_required
 def get_user_machines():
     result = []
-    response = flask.jsonify('test')
-
-    print(app.config['COOKIE_AUTH'])
-    print(app.config['COOKIE_USER'])
+    response = flask.jsonify(result)
 
     try:
         user = (fernet.decrypt(bytes(flask.request.cookies.get(app.config['COOKIE_USER']), 'utf-8'))).decode("utf-8")
         user = user.replace('"', '')
-        print('result: ', result)
-
         user_machines = VirtualMachine.query.filter_by(owner=user).all()
         vm_schema = VirtualMachineSchema(many=True)
         result = vm_schema.dump(user_machines)
@@ -106,18 +100,41 @@ def get_user_machines():
         logging.warning('Invalid user. Authentication failed')
         return flask.redirect(flask.url_for('login'))
 
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:4200')
+    response.headers.add('Access-Control-Allow-Origin', app.config['CROWBAR_WEB_IP'])
     response.headers.add('Access-Control-Allow-Methods', 'GET')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
 
+@app.route('/userdetails')
+def get_user_details():
+    data = {app.config['COOKIE_USER']: flask.request.cookies.get(app.config['COOKIE_USER']),
+            app.config['COOKIE_AUTH']: flask.request.cookies.get(app.config['COOKIE_AUTH'])}
+
+    if app.config['COOKIE_USER'] in flask.request.cookies:
+        response = flask.jsonify(data)
+    else:
+        response = flask.jsonify('')
+    response.headers.add('Access-Control-Allow-Origin', app.config['CROWBAR_WEB_IP'])
+    response.headers.add('Access-Control-Allow-Methods', 'GET')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
+
 @app.route('/token')
 def get_token():
-    return flask.redirect(flask.url_for('login'))
+    # return flask.redirect(flask.url_for('login')) :Todo revert to this after initial demo
 
+    resp = flask.make_response(flask.redirect(app.config['CROWBAR_WEB_IP']))
+
+    # Set cookies with encrypted data and time limit of 30 minutes
+    resp.set_cookie(app.config['COOKIE_USER'], fernet.encrypt(json.dumps('calipso').encode('utf-8')), max_age=60 * 30)
+    resp.set_cookie(app.config['COOKIE_AUTH'], fernet.encrypt(json.dumps('calipsoplus-jra2').encode('utf-8')), max_age=60 * 30)
+
+    return resp
 
 @flask_saml.saml_authenticated.connect_via(app)
 def on_saml_authenticated(sender, subject, attributes, auth):
+
     attributes_json = json.JSONEncoder().encode(attributes)
     attributes_list = json.loads(attributes_json)
 
@@ -126,4 +143,4 @@ def on_saml_authenticated(sender, subject, attributes, auth):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', debug=True)
