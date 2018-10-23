@@ -6,7 +6,7 @@ pip3 install -r requirements.txt
 
 ## Configuration:
 SECRET_KEY=  
-SAML_METADATA_URL=  url_for_saml2_authenticator
+SAML_METADATA_URL=  url_for_saml2_authenticator  
 FERNET_KEY=  fernet_key_value_must_be_same_as_crowbar_guacamole_and_web_  
 COOKIE_AUTH=  name_of_cookie_with_auth_value  
 COOKIE_USER=  name_of_cookie_with_user_name_value  
