@@ -21,7 +21,7 @@ marshmallow==2.15.6
 marshmallow-sqlalchemy==0.14.1
 pycparser==2.19
 pyOpenSSL==18.0.0
-pysaml2==4.6.2
+pysaml2==6.5.0
 python-dateutil==2.7.3
 pytz==2018.5
 requests==2.19.1
